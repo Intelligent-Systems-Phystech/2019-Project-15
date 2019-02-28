@@ -36,17 +36,16 @@
     typesetting system and style file \texttt{jmlda.sty}.
 
     \bigskip
-    \textbf{Keywords}: \emph{keyword, keyword, more keywords}.}
+    %\textbf{Keywords}: \emph{keyword, keyword, more keywords}.
+}
 \begin{document}
 \maketitle
 %\linenumbers
 \section{Введение}
-После аннотации, но перед первым разделом,
-располагается введение, включающее в себя
-описание предметной области,
-обоснование актуальности задачи,
-краткий обзор известных результатов,
-и~т.\,п~%\cite{author09anyscience,myHandbook,author09first-word-of-the-title,voron06latex,author-and-co2007,Lvovsky03}.
+Предсказание наиболее выгодной ориентации и положения молекул по отношению друг к другу для образования устойчивого комплекса из белка и лиганда, или молекулярный докинг - задача, важная для ускорения процесса разработки новых лекарств.
+Есть два метода её решения: pose prediction - среди нескольких сгенерированных положений лиганда в белке определить наиболее близкое к реальному и scoring - предсказать аффинность (свободную энергию связывания) для комплексов различных белков с лигандами. При этом положение с наименьшей энергией связывания будет соответствовать нативной конформации. Первая задача решена в работе [1] с помощью оптимизации скоринговой функции, учитывающей всевозможные комбинации различных пар атомов и расстояния между ними. Раскладывая эту функцию по базису, авторы представляют её как вектор структурных коэффициентов и сводят задачу к модифицированной SVM-классификации.
+
+Наше предположение заключается в том, что если использовать экспериментальные данные об аффинностях, то можно улучшить качество классификации. В эксперименте, описанном в данной статье, мы проверим эту гипотезу, а также постараемся решать оптимизационную задачу максимально эффективно вычислительно, чтобы иметь возможность использовать как можно больше доступных экспериментальных  данных.
 
 \section{Название раздела}
 Данный документ демонстрирует оформление статьи,
@@ -183,12 +182,13 @@ Def, Axiom, Hypothesis, Problem, Lemma, Theorem, Corollary, State, Example, Rema
 
 \bibliographystyle{unsrt}
 \bibliography{jmlda-bib}
-%\begin{thebibliography}{1}
+\begin{thebibliography}{1}
 
-%\bibitem{author09anyscience}
-%    \BibAuthor{Author\;N.}
-%    \BibTitle{Paper title}~//
-%    \BibJournal{10-th Int'l. Conf. on Anyscience}, 2009.  Vol.\,11, No.\,1.  Pp.\,111--122.
+\bibitem{author09anyscience}
+	\BibAuthor{Maria Kadukova, Sergei Grudinin\;}
+	\BibTitle{Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization}~//
+	\BibJournal{ Journal of ComputerAided Molecular Design, Springer Verlag}, 2017, 31 (10), pp.943-958.
+    
 %\bibitem{myHandbook}
 %    \BibAuthor{Автор\;И.\,О.}
 %    Название книги.
@@ -214,7 +214,7 @@ Def, Axiom, Hypothesis, Problem, Lemma, Theorem, Corollary, State, Example, Rema
 %    \BibAuthor{Львовский~С.\,М.} Набор и вёрстка в пакете~\LaTeX.
 %    3-е издание.
 %    Москва:~МЦHМО, 2003.  448~с.
-%\end{thebibliography}
+\end{thebibliography}
 
 % Решение Программного Комитета:
 %\ACCEPTNOTE
