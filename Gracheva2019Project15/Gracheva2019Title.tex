@@ -7,19 +7,15 @@
     для оценки энергии связывания белка и маленьких молекул}
 \author
     %[Грачева~А.\,С.] % список авторов для колонтитула; не нужен, если основной список влезает в колонтитул
-    {Грачева~А.\,С., Соавтор~И.\,О., Фамилия~И.\,О.} % основной список авторов, выводимый в оглавление
+    {Анастасия Грачева, Мария Кадукова, Сергей Грудинин, В.В. Стрижов} % основной список авторов, выводимый в оглавление
     %[Автор~И.\,О.$^1$, Соавтор~И.\,О.$^2$, Фамилия~И.\,О.$^2$] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
-\thanks
-    {Работа выполнена при финансовой поддержке РФФИ, проект \No\,00-00-00000.
-   Научный руководитель:  Стрижов~В.\,В.
-   Задачу поставил:  Эксперт~И.\,О.
-    Консультант:  Консультант~И.\,О.}
+
 \email
     {gracheva.as@phystech.edu}
 \organization
     {$^1$ФИВТ МФТИ}
 \abstract
-    {При разработке лекарства возникает задача поиска маленьких молекул - лигандов, наиболее сильно взаимодействующих с исследуемым белком, а значит являющихся основными кандидатами в лекарства. Можно генерировать несколько возможных положений лиганда и классифицировать их как нативные и не нативные, но качество предсказания может быть повышено, если использовать экспериментальные данные о свободной энергии связывания молекул и решать одновременно задачи регрессии и классификации. В статье будут рассмотрены эксперименты с алгоритмом, использующим эту идею.
+    {При разработке лекарства возникает задача поиска маленьких молекул - лигандов, наиболее сильно взаимодействующих с исследуемым белком, а значит являющихся основными кандидатами в лекарства. Один из способов определить действительное положение такого лиганда заключается в том, чтобы генерировать несколько возможных положений и классифицировать их как нативные и не нативные. Но качество предсказания может быть повышено, если использовать экспериментальные данные о свободной энергии связывания молекул и решать одновременно задачи регрессии и классификации. В статье будут рассмотрены эксперименты с алгоритмом, использующим эту идею.
     
 
 %\bigskip
@@ -45,7 +41,7 @@
 Предсказание наиболее выгодной ориентации и положения молекул по отношению друг к другу для образования устойчивого комплекса из белка и лиганда, или молекулярный докинг - задача, важная для ускорения процесса разработки новых лекарств.
 Есть два метода её решения: pose prediction - среди нескольких сгенерированных положений лиганда в белке определить наиболее близкое к реальному и scoring - предсказать аффинность (свободную энергию связывания) для комплексов различных белков с лигандами. При этом положение с наименьшей энергией связывания будет соответствовать нативной конформации. Первая задача решена в работе [1] с помощью оптимизации скоринговой функции, учитывающей всевозможные комбинации различных пар атомов и расстояния между ними. Раскладывая эту функцию по базису, авторы представляют её как вектор структурных коэффициентов и сводят задачу к модифицированной SVM-классификации.
 
-Наше предположение заключается в том, что если использовать экспериментальные данные об аффинностях, то можно улучшить качество классификации. В эксперименте, описанном в данной статье, мы проверим эту гипотезу, а также постараемся решать оптимизационную задачу максимально эффективно вычислительно, чтобы иметь возможность использовать как можно больше доступных экспериментальных  данных.
+Наше предположение заключается в том, что с использованием экспериментальных данных об аффинностях можно улучшить качество классификации. В эксперименте, описанном в данной статье, мы проверим эту гипотезу, а также постараемся решать оптимизационную задачу максимально эффективно вычислительно, чтобы использовать как можно больше доступных экспериментальных  данных.
 
 \section{Постановка задачи}
 Пусть $\{C_{ij}\}_{i=1}^P$ - комплексы белков и лигандов. При $j=0$ они находятся в нативных позах, при $j = 1 \dots D$ - в ненативных. Задача заключается в том, чтобы найти скоринговую функцию $E$, который удовлетворяет неравенствам: 
@@ -110,169 +106,144 @@ $y_{i0}=1$ для нативной позы и $y_{ij}=-1, \ j\in\{1,\dots,D\},$
 \end{equation}
 где $f(\mathbf{x}_{i0},\mathbf{w}, s_i)$ -- MSE, $C_r$ -- коэффициент регуляризации для функции потерь регрессии. 
 
-\paragraph{Название параграфа.}
-%Первый раздел может содержать формальную постановку задачи,
-%основные определения и~обозначения,
-%известные факты, необходимые для понимания основных результатов работы,
-%и~т.\,п.
-Нет ограничений на~количество разделов и~параграфов в~статье.
-Разделы и~параграфы не~нумеруются.
+\section{Теоретическая часть}
+С помощью замены переменных сведем два квадратичных слагаемых в целевой функции из задачи \eqref{eq12} к одному. 
 
-\paragraph{Теоретическую часть работы} желательно структурировать
-с~помощью окружений
-Def, Axiom, Hypothesis, Problem, Lemma, Theorem, Corollary, State, Example, Remark.
-
-\begin{Def}
-    Математический текст \emph{хорошо структурирован},
-    если в~нём выделены определения, теоремы, утверждения, примеры, и~т.\,д.,
-    а~неформальные рассуждения (мотивации, интерпретации)
-    вынесены в~отдельные параграфы.
-\end{Def}
-
-\begin{State}
-    Мотивации и~интерпретации наиболее важны для понимания сути работы.
-\end{State}
-
-\begin{Theorem}
-    Не~менее $90\%$ коллег, заинтересовавшихся Вашей статьёй,
-    прочитают в~ней не~более~$10\%$ текста.
-\end{Theorem}
-
-\begin{Proof}
-    Причём это будут именно те~разделы, которые не содержат формул.
-\end{Proof}
-
-\begin{Remark}
-    Выше показано применение окружений
-    Def, Theorem, State, Remark, Proof.
-\end{Remark}
-
-\section{Некоторые формулы}
-
-Образец формулы: $f(x_i,\alpha^\gamma)$.
-
-Образец выключной формулы без номера:
-\[
-    y(x,\alpha) =
-    \begin{cases}
-        -1, & \text{если } f(x,\alpha)<0;  \\
-        +1, & \text{если } f(x,\alpha)\geq 0.
-    \end{cases}
-\]
-
-Образец выключной формулы с номером:
-\begin{equation}
-\label{eq:cases}
-    y(x,\alpha) =
-    \begin{cases}
-        -1, & \text{если } f(x,\alpha)<0;  \\
-        +1, & \text{если } f(x,\alpha)\geq 0.
-    \end{cases}
+Функция потерь регрессии MSE для одного комплекса выражается формулой:
+\begin{equation}\label{eq15}
+f({\mathbf{x}}_{i0}, {\mathbf{w}}, s_i) = ({\mathbf{w}}^{\text{T}}{\mathbf{x}}_{i0} - s_i)^2.
 \end{equation}
 
-Образец выключной формулы, разбитой на две строки с~помощью окружения align:
-\begin{align}
-    R'_N(F)
-        = \frac1N \sum_{i=1}^N
-        \Bigl(
-            & P(+1\cond x_i) C\bigl(+1,F(x_i)\bigr)+{}
-        \notag % подавили номер у первой строки
-    \\ {}+{}
-            & P(-1\cond x_i) C\bigl(-1,F(x_i)\bigr)
-        \Bigr).
-        \label{eq:R(F)}
-\end{align}
+Тогда для выборки ${\mathbf{X}}=({\mathbf{x}}_{10}, \dots, {\mathbf{x}}_{P0})^{\text{T}}$, состоящей из нативных конфигураций, и целевого вектора  $\mathbf{s}=(s_1,\dots,s_P)^{\text{T}}$ квадратичные слагаемые целевой функции из задачи \eqref{eq12} принимают вид:
+\begin{equation*}
+\begin{aligned}
+& \frac{1}{2} \|{\mathbf{w}}\|^2 + C_{r}\sum\limits_{i} f({\mathbf{x}}_{i0},{\mathbf{w}}, s_i)=\frac{1}{2}{\mathbf{w}}^{\text{T}}{\mathbf{w}}+C_{r}({\mathbf{w}}^{\text{T}}{\mathbf{X}} - \mathbf{s})^2 =\\
+& = \frac{1}{2}{\mathbf{w}}^{\text{T}}{\mathbf{w}}+ C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}{\mathbf{X}}^{\text{T}}{\mathbf{w}}- 2C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}^{\text{T}}\mathbf{s} + C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = {\mathbf{w}}^{\text{T}}\left(\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right){\mathbf{w}}- 2C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}^{\text{T}}\mathbf{s}+ C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = \left(\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{\frac{1}{2}}{\mathbf{w}}\right)^2- 2C_{r}\left({\mathbf{w}}^{\text{T}}\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{\frac{1}{2}}\right)
+\left(\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{-\frac{1}{2}}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right)+ C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = \left(\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{\frac{1}{2}}{\mathbf{w}} - C_r\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{-\frac{1}{2}}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right)^2 + C_r\mathbf{s}^{\text{T}}\mathbf{s}- C_r^2\mathbf{s}^{\text{T}}{\mathbf{X}}\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{-1}{\mathbf{X}}^{\text{T}}\mathbf{s}.
+\end{aligned}
+\end{equation*}
+Введем замену переменных:
+\begin{equation}\label{eq16}
+\begin{aligned}
+& \mathbf{w}'= \mathbf{A}{\mathbf{w}} - \mathbf{B}, \ \text{где} \\
+& \mathbf{A}=\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{\frac{1}{2}},\\
+& \mathbf{B}=C_r\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{-\frac{1}{2}}{\mathbf{X}}^{\text{T}}\mathbf{s}.
+\end{aligned}
+\end{equation}
+Тогда, учитывая, что 
+\begin{equation*}
+C_r\mathbf{s}^{\text{T}}\mathbf{s}-
+C_r^2\mathbf{s}^{\text{T}}{\mathbf{X}}\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}{\mathbf{X}}^{\text{T}}\right]^{-1}{\mathbf{X}}^{\text{T}}\mathbf{s}
+=\text{const},
+\end{equation*}
+задача оптимизации принимает вид: 
+\begin{equation}\label{eq17}
+\begin{aligned}
+& \underset{\mathbf{w}', b_i, \xi_{ij}}{\text{minimize:}}
+& & \frac{1}{2} \|\mathbf{w}'\|^2 + C\sum\limits_{ij}\xi_{ij} \\
+& \text{subject to:}
+& & y_{ij}[\left(\mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right)\right)^{\text{T}}\mathbf{x}_{ij} - b_i]-1+\xi_{ij} \geq 0, \\
+&&& \xi_{ij} \geq 0, \\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\}.
+\end{aligned}
+\end{equation}
+Введем обозначение:
+\begin{equation}\label{eq18}
+\hat{\mathbf{X}} = (\mathbf{A}^{-1})^{\text{T}}\mathbf{X}.
+\end{equation}
 
-Образцы ссылок: формулы~\eqref{eq:cases} и~\eqref{eq:R(F)}.
+Найдём двойственную задачу:
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\mathbf{w}', \mathbf{b}, \mathbf{\xi}, \lambda, r) = \frac{1}{2} \|\mathbf{w}'\|^2 + C\sum\limits_{ij}\xi_{ij} - 
+\sum_{ij}{\lambda_{ij} \left( y_{ij}[\langle \mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right), \mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \right)} -
+\sum_{ij}{r_{ij}\xi_{ij}} \\
+& \frac{\partial{\mathcal{L}}}{\partial{\mathbf{w}'}} = \mathbf{w}' - \sum{\lambda_{ij}y_{ij}\langle \mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right), \mathbf{x}_{ij} \rangle}'_{w'} = 0 \rightarrow \mathbf{w}' = \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}} \\
+& \forall i, 
+\frac{\partial{\mathcal{L}}}{\partial{b_i}} = \sum_j{\lambda_{ij}y_{ij}} = 0 \\
+& \forall (i, j), \frac{\partial{\mathcal{L}}}{\partial{\xi_{ij}}} = C - \lambda_{ij} - r_{ij} = 0 \rightarrow \lambda_{ij} + r_{ij} = C
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\lambda, r) = \frac{1}{2} \langle \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}}, \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}} \rangle + C\sum\limits_{ij}\xi_{ij} - 
+\sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1} \sum_{ij}{\lambda_{ij}y_{ij} \mathbf{A}^{-1}  \mathbf{x}_{ij}}, \mathbf{x}_{ij}\rangle} - \\ 
+& - \sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{ij}{\lambda_{ij} y_{ij}b_i} + \sum_{ij}{\lambda_{ij}}  - \sum_{ij}{\lambda_{ij}\xi_{ij}}- \sum_{ij}{r_{ij}\xi_{ij}} = \\
+& = \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \mathbf{A}^{-1} \mathbf{x}_{ij}, \mathbf{A}^{-1} \mathbf{x}_{pq} \rangle} + \sum_{ij}{\xi_{ij}(C - \lambda_{ij} - r_{ij})} - \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \mathbf{A}^{-2} \mathbf{x}_{ij},  \mathbf{x}_{pq} \rangle} - \\
+& - \sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{i}{b_i \sum_j{\lambda_{ij} y_{ij}}} + \sum_{ij}{\lambda_{ij}}
+\end{aligned}
+\end{equation}
+\\
+\begin{enumerate}
+	\item $\sum_{ij}{\xi_{ij}(C - \lambda_{ij} - r_{ij})} = 0$ из ограничений;
+	\item $\sum_{i}{b_i \sum_j{\lambda_{ij} y_{ij}}} = 0$ из ограничений;
+	\item $\langle  \mathbf{A}^{-2} \mathbf{x},  \mathbf{x} \rangle = \langle  \mathbf{A}^{-1} \mathbf{x}, \mathbf{A}^{-1} \mathbf{x} \rangle$, т.к. $\mathbf{x}^{\top}\mathbf{A}^{-2} \mathbf{x} =  \mathbf{x}^{\top}\mathbf{A}^{-1}\mathbf{A}^{-1} \mathbf{x} = (\mathbf{A}^{-1} \mathbf{x})^{\top}\mathbf{A}^{-1} \mathbf{x}$
+\end{enumerate}
 
-\section{Пример илюстрации}
+$\rightarrow$ введём обозначение:
+$\widehat{\mathbf{X}} = (\mathbf{A}^{-1})^{\text{T}}\mathbf{X} = \mathbf{A}^{-1}\mathbf{X}$, т.к. $ \mathbf{A}$ симметрична.
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\lambda) = - \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}_{ij}}, \widehat{\mathbf{x}_{pq}} \rangle} - 
+\sum_{ij}{\lambda_{ij}y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{ij}{\lambda_{ij}} = \\
+& = - \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}_{ij}}, \widehat{\mathbf{x}_{pq}}  \rangle} + 
+\sum_{ij}{\lambda_{ij} \left(1  - y_{ij}\langle \mathbf{B}, \widehat{\mathbf{x}_{ij}} \rangle \right)}
+\end{aligned}
+\end{equation}
+Двойственная задача: $\argmax_{\lambda} \mathcal{L}(\lambda)$
 
-Рисунки вставляются командой \verb|\includegraphics|,
-желательно с~выравниванием по~ширине колонки: \verb|[width=\linewidth]|.
+Значит, исходная задача по теореме Каруша-Куна-Таккера эквивалентна двойственной:
+\begin{equation}\label{eq19}
+\begin{aligned}
+& \underset{\lambda_{ij}}{\text{minimize:}}
+& & \frac{1}{2}\sum\limits_{(i,j),(p,q)}\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}}_{ij},\widehat{\mathbf{x}}_{pq}\rangle + \sum_{ij}{\lambda_{ij} \left(y_{ij}\langle \mathbf{B}, \widehat{\mathbf{x}_{ij}} \rangle - 1 \right)} \\
+& \text{subject to:}
+& & 0\geq\lambda_{ij}\geq C, \\
+&&& \forall i, \sum_j{\lambda_{ij}y_{ij}} = 0 \\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\}.
+\end{aligned}
+\end{equation}
 
-Практически все популярные пакеты рисуют графики с подписями, которые трудно читать на бумаге и на слайдах из-за малого размера шрифта. Шрифт на графиках (подписи осей и цифры на осях) должны быть такого же размера, что и основной текст.
+\section{Эксперимент}
 
-\begin{figure}[h]
-  \subfloat[Первый рисунок]{\includegraphics[width=0.5\textwidth]{figExample1}}
-  \subfloat[Второй рисунок]{\includegraphics[width=0.5\textwidth]{figExample2}}\\
-\caption{Подпись должна размещаться под рисунком. }
-\label{fg:Example}
-\end{figure}
-
-При значительном количестве рисунков рекомендуется группировать иx в одном окружении \verb|{figure}|, как это сделано на рис.~\ref{fg:Example}.
-
-\section{Пример таблицы}
-Подпись делается \emph{над таблицей}, см.~таблицу~\ref{TabExample}.
-
-
-\begin{table}[t]%\small
-    \caption{Подпись размещается над таблицей.}
-    \label{TabExample}
-    \centering\medskip%\tabcolsep=2pt%\small
-    \begin{tabular}{lrrr}
-    \headline
-        Задача
-            & \multicolumn{1}{c}{CCEL}
-            & \multicolumn{1}{c}{boosting} \\
-    \headline
-        {\tt Cancer}
-            & $\mathbf{3.46}  \pm 0.37$ (3.16)
-            & $4.14 \pm 1.48$ \\
-        {\tt German}
-            & $\mathbf{25.78} \pm 0.65$ (1.74)
-            & $29.48 \pm 0.93$ \\
-        {\tt Hepatitis}
-            & $18.38 \pm 1.43$ (2.87)
-            & $19.90 \pm 1.80$ \\
-    \hline
-    \end{tabular}
-\end{table}
 
 \section{Заключение}
-Желательно, чтобы этот раздел был, причём он не~должен дословно повторять аннотацию.
-Обычно здесь отмечают,
-каких результатов удалось добиться,
-какие проблемы остались открытыми.
 
 
-\bibliographystyle{unsrt}
-\bibliography{jmlda-bib}
 \begin{thebibliography}{1}
+	\bibitem{classification} 
+	Maria Kadukova, Sergei Grudinin.
+	\textbf{Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization}.
+	Journal of Computer-Aided Molecular Design, October 2017, Volume 31, Issue 10, pp 943–958.
+	
+	\bibitem{D3R}
+	Maria Kadukova and Sergei Grudinin.
+	\textbf{Docking of small molecules to farnesoid X receptors using AutoDock Vina with the Convex-PL potential : lessons learned from D3R Grand Challenge 2}.
+	J. Comput.-Aided Mol. Des., 2017. 
+	
+	\bibitem{regression} 
+	Sergei Grudinin, Maria Kadukova, Andreas Eisenbarth, Simon Marillet, Frédéric Cazals.
+	\textbf{Predicting binding poses and affinities for protein-ligand complexes in the 2015 D3R Grand Challenge using a physical model with a statistical parameter estimation}.
+	J Comput Aided Mol Des. 2016 Sep;30(9):791-804. Epub 2016 Oct 7.
+	
+	\bibitem{convex_optimization} 
+	S.P. Boyd and L. Vandenberghe.
+	\textbf{Convex optimization}.
+	Cambridge Univ Press, 2004.
+	
+%	\bibitem{liblinear} 
+%	Rong-En Fan, Kai-Wei Chang, Cho-Jui Hsieh, Xiang-Rui Wang, Chih-Jen Lin.
+%	\textbf{LIBLINEAR: A Library for Large Linear Classification}.
+%	The Journal of Machine Learning Research archive, Volume 9, 6/1/2008, Pages 1871-1874.
 
-\bibitem{author09anyscience}
-	\BibAuthor{Maria Kadukova, Sergei Grudinin\;}
-	\BibTitle{Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization}~//
-	\BibJournal{ Journal of ComputerAided Molecular Design, Springer Verlag}, 2017, 31 (10), pp.943-958.
-    
-%\bibitem{myHandbook}
-%    \BibAuthor{Автор\;И.\,О.}
-%    Название книги.
-%    Город: Издательство, 2009. 314~с.
-%\bibitem{author09first-word-of-the-title}
-%    \BibAuthor{Автор\;И.\,О.}
-%    \BibTitle{Название статьи}~//
-%    \BibJournal{Название конференции или сборника},
-%    Город:~Изд-во, 2009.  С.\,5--6.
-%\bibitem{author-and-co2007}
-%    \BibAuthor{Автор\;И.\,О., Соавтор\;И.\,О.}
-%    \BibTitle{Название статьи}~//
-%    \BibJournal{Название журнала}. 2007. Т.\,38, \No\,5. С.\,54--62.
-%\bibitem{bibUsefulUrl}
-%    \BibUrl{www.site.ru}~---
-%    Название сайта.  2007.
-%\bibitem{voron06latex}
-%    \BibAuthor{Воронцов~К.\,В.}
-%    \LaTeXe\ в~примерах.
-%    2006.
-%    \BibUrl{http://www.ccas.ru/voron/latex.html}.
-%\bibitem{Lvovsky03}
-%    \BibAuthor{Львовский~С.\,М.} Набор и вёрстка в пакете~\LaTeX.
-%    3-е издание.
-%    Москва:~МЦHМО, 2003.  448~с.
+	
 \end{thebibliography}
 
-% Решение Программного Комитета:
-%\ACCEPTNOTE
-%\AMENDNOTE
-%\REJECTNOTE
 \end{document}
