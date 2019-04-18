@@ -1,0 +1,252 @@
+\documentclass[12pt,twoside]{article}
+\usepackage{jmlda}
+%\NOREVIEWERNOTES
+\title
+    %[Образец оформления статьи для публикации] % Краткое название; не нужно, если полное название влезает в~колонтитул
+    {Формулировка и решение задачи оптимизации, сочетающей классификацию и регрессию, 
+    для оценки энергии связывания белка и маленьких молекул}
+\author
+    %[Грачева~А.\,С.] % список авторов для колонтитула; не нужен, если основной список влезает в колонтитул
+    {Анастасия Грачева, Мария Кадукова, Сергей Грудинин, В.В. Стрижов} % основной список авторов, выводимый в оглавление
+    %[Автор~И.\,О.$^1$, Соавтор~И.\,О.$^2$, Фамилия~И.\,О.$^2$] % список авторов, выводимый в заголовок; не нужен, если он не отличается от основного
+
+\email
+    {gracheva.as@phystech.edu}
+\organization
+    {$^1$ФИВТ МФТИ}
+\abstract
+    {При разработке лекарства возникает задача поиска маленьких молекул - лигандов, наиболее сильно взаимодействующих с исследуемым белком, а значит являющихся основными кандидатами в лекарства. Один из способов определить действительное положение такого лиганда заключается в том, чтобы генерировать несколько возможных положений и классифицировать их как нативные и не нативные. Но качество предсказания может быть повышено, если использовать экспериментальные данные о свободной энергии связывания молекул и решать одновременно задачи регрессии и классификации. В статье будут рассмотрены эксперименты с алгоритмом, использующим эту идею.
+    
+
+%\bigskip
+%\textbf{Ключевые слова}: \emph {ключевое слово, ключевое слово, еще ключевые слова}.
+}
+\titleEng
+    {JMLDA paper example: file jmlda-example.tex}
+\authorEng
+    {Author~F.\,S.$^1$, CoAuthor~F.\,S.$^2$, Name~F.\,S.$^2$}
+\organizationEng
+    {$^1$Organization; $^2$Organization}
+\abstractEng
+    {This document is an example of paper prepared with \LaTeXe\
+    typesetting system and style file \texttt{jmlda.sty}.
+
+    \bigskip
+    %\textbf{Keywords}: \emph{keyword, keyword, more keywords}.
+}
+\begin{document}
+\maketitle
+%\linenumbers
+\section{Введение}
+Предсказание наиболее выгодной ориентации и положения молекул по отношению друг к другу для образования устойчивого комплекса из белка и лиганда, или молекулярный докинг - задача, важная для ускорения процесса разработки новых лекарств.
+Есть два метода её решения: pose prediction - среди нескольких сгенерированных положений лиганда в белке определить наиболее близкое к реальному и scoring - предсказать аффинность (свободную энергию связывания) для комплексов различных белков с лигандами. При этом положение с наименьшей энергией связывания будет соответствовать нативной конформации. Первая задача решена в работе [1] с помощью оптимизации скоринговой функции, учитывающей всевозможные комбинации различных пар атомов и расстояния между ними. Раскладывая эту функцию по базису, авторы представляют её как вектор структурных коэффициентов и сводят задачу к модифицированной SVM-классификации.
+
+Наше предположение заключается в том, что с использованием экспериментальных данных об аффинностях можно улучшить качество классификации. В эксперименте, описанном в данной статье, мы проверим эту гипотезу, а также постараемся решать оптимизационную задачу максимально эффективно вычислительно, чтобы использовать как можно больше доступных экспериментальных  данных.
+
+\section{Постановка задачи}
+Пусть $\{C_{ij}\}_{i=1}^P$ - комплексы белков и лигандов. При $j=0$ они находятся в нативных позах, при $j = 1 \dots D$ - в ненативных. Задача заключается в том, чтобы найти скоринговую функцию $E$, который удовлетворяет неравенствам: 
+\begin{equation}\\
+\begin{split}
+& E(C_{i0}) < E(C_{ij}) \\
+& \forall i\in 1,\dots,P, \\
+& \forall j\in 1,\dots,D.
+\end{split}
+\end{equation}
+
+В модели взаимодействия, описанной в [1], эта функция задаётся скоринговым вектором $\mathbf{w}$. Поэтому неравенство выше может быть преобразовано в систему неравенств:
+ 
+\begin{equation}\label{eq9}
+\begin{split}
+& \langle\mathbf{x}_{i0}, \mathbf{w}\rangle < \langle\mathbf{x}_{ij}, \mathbf{w}\rangle, \\
+& \langle\mathbf{x}_{ij} - \mathbf{x}_{i0}, \mathbf{w}\rangle > 0, \\
+& \forall i = 1,\dots, P, \\
+& \forall j = 1, \dots, D.
+\end{split}
+\end{equation}
+где $x_{ij}$ - структурные вектора.  
+
+Чтобы гарантировать единственность решения, а также решать задачу в случае линейной неразделимости выборки, приведём её к виду задачи квадратичной оптимизации с мягким зазором:
+\begin{equation}\label{eq10}
+\begin{aligned}
+& \underset{\mathbf{w}, b_i, \xi_{ij}}{\text{minimize:}}
+& & \frac{1}{2} \|\mathbf{w}\|^2 + C\sum\limits_{ij}\xi_{ij} \\
+& \text{subject to:}
+& & y_{ij}[\langle\mathbf{w},\mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \geq 0, \\
+&&& \xi_{ij} \geq 0,\\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\},
+\end{aligned}
+\end{equation}
+где $\mathbf{w}$, $b_i$ и переменные невязки $\xi_{ij}$ -- оптимизируемые параметры модели, \\
+$y_{i0}=1$ для нативной позы и $y_{ij}=-1, \ j\in\{1,\dots,D\},$ для ненативной,\\
+а $C$ -- некоторый коэффициент регуляризации. \\
+Таким образом, решив оптимизационную задачу, решаем и задачу класификации.
+
+Кроме того, есть другая потановка этой задачи - задача регрессии, т.е. предсказания значения свободной энергии связывания белка с лигандом:
+\begin{equation}\label{eq11}
+\begin{aligned}
+& \underset{\mathbf{w}}{\text{minimize:}}
+& & \sum\limits_{i}[\langle\mathbf{w},\mathbf{x}_{i0}\rangle - s_i]^2 + \alpha\|\mathbf{w}\|^2, \\
+&&& i\in\{1,\dots,P\},
+\end{aligned}
+\end{equation}
+где $s_i$ -- экспериментально полученное значение энергии связывания $i$-го нативного соединения, $\alpha$ -- коэффициент регуляризации для ridge-регрессии. 
+
+Объединение этих методов заключается в сложении функций потерь классификации и регрессии:
+\begin{equation}\label{eq12}
+\begin{aligned}
+& \underset{\mathbf{w}, b_i, \xi_{ij}}{\text{minimize:}}
+& & \frac{1}{2} \|\mathbf{w}\|^2 + C\sum\limits_{ij}\xi_{ij} + C_{r}\sum\limits_{i} f(\mathbf{x}_{i0},\mathbf{w}, s_i) \\
+& \text{subject to:}
+& & y_{ij}[\langle\mathbf{w},\mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \geq 0, \\
+&&& \xi_{ij} \geq 0, \\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\},
+\end{aligned}
+\end{equation}
+где $f(\mathbf{x}_{i0},\mathbf{w}, s_i)$ -- MSE, $C_r$ -- коэффициент регуляризации для функции потерь регрессии. 
+
+\section{Теоретическая часть}
+С помощью замены переменных сведем два квадратичных слагаемых в целевой функции из задачи \eqref{eq12} к одному. 
+
+Функция потерь регрессии MSE для одного комплекса выражается формулой:
+\begin{equation}\label{eq15}
+f({\mathbf{x}}_{i0}, {\mathbf{w}}, s_i) = (\langle{\mathbf{x}}_{i0}, {\mathbf{w}} \rangle - s_i)^2.
+\end{equation}
+
+Тогда для выборки ${\mathbf{X}}=({\mathbf{x}}_{10}, \dots, {\mathbf{x}}_{P0})^{\text{T}}$, состоящей из нативных конфигураций, и целевого вектора  $\mathbf{s}=(s_1,\dots,s_P)^{\text{T}}$ квадратичные слагаемые целевой функции из задачи \eqref{eq12} принимают вид:
+\begin{equation*}
+\begin{aligned}
+& \frac{1}{2} \|{\mathbf{w}}\|^2 + C_{r}\sum\limits_{i} f({\mathbf{x}}_{i0},{\mathbf{w}}, s_i)=\frac{1}{2}{\mathbf{w}}^{\text{T}}{\mathbf{w}}+C_{r}\|{\mathbf{X}}{\mathbf{w}} - \mathbf{s}\|^2 =\\
+& = \frac{1}{2}{\mathbf{w}}^{\text{T}}{\mathbf{w}}+ C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}^{\text{T}}{\mathbf{X}}{\mathbf{w}}- 2C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}^{\text{T}}\mathbf{s} + C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = {\mathbf{w}}^{\text{T}}\left(\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right){\mathbf{w}}- 2C_{r}{\mathbf{w}}^{\text{T}}{\mathbf{X}}^{\text{T}}\mathbf{s}+ C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = \left\|\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{\frac{1}{2}}{\mathbf{w}}\right\|^2- 2C_{r}\left({\mathbf{w}}^{\text{T}}\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{\frac{1}{2}}\right)
+\left(\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac{1}{2}}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right)+ C_{r}\mathbf{s}^{\text{T}}\mathbf{s}=\\
+& = \left(\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{\frac{1}{2}}{\mathbf{w}} - C_r\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac{1}{2}}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right)^2 + C_r\mathbf{s}^{\text{T}}\mathbf{s}- C_r^2\left\|\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac12}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right\|^2.
+\end{aligned}
+\end{equation*}
+Введем замену переменных:
+\begin{equation}\label{eq16}
+\begin{aligned}
+& \mathbf{w}'= \mathbf{A}{\mathbf{w}} - \mathbf{B}, \ \text{где} \\
+& \mathbf{A}=\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{\frac{1}{2}},\\
+& \mathbf{B}=C_r\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac{1}{2}}
+{\mathbf{X}}^{\text{T}}\mathbf{s}.
+\end{aligned}
+\end{equation}
+Тогда, учитывая, что 
+\begin{equation*}
+C_r\mathbf{s}^{\text{T}}\mathbf{s}-
+C_r^2\left\|\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac12}
+{\mathbf{X}}^{\text{T}}\mathbf{s}\right\|^2
+=\text{const},
+\end{equation*}
+задача оптимизации принимает вид: 
+\begin{equation}\label{eq17}
+\begin{aligned}
+& \underset{\mathbf{w}', b_i, \xi_{ij}}{\text{minimize:}}
+& & \frac{1}{2} \|\mathbf{w}'\|^2 + C\sum\limits_{ij}\xi_{ij} \\
+& \text{subject to:}
+& & y_{ij}[\left(\mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right)\right)^{\text{T}}\mathbf{x}_{ij} - b_i]-1+\xi_{ij} \geq 0, \\
+&&& \xi_{ij} \geq 0, \\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\}.
+\end{aligned}
+\end{equation}
+Введем обозначение:
+\begin{equation}\label{eq18}
+\hat{\mathbf{X}} = (\mathbf{A}^{-1})^{\text{T}}\mathbf{X}.
+\end{equation}
+
+Найдём двойственную задачу:
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\mathbf{w}', \mathbf{b}, \mathbf{\xi}, \lambda, r) = \frac{1}{2} \|\mathbf{w}'\|^2 + C\sum\limits_{ij}\xi_{ij} - 
+\sum_{ij}{\lambda_{ij} \left( y_{ij}[\langle \mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right), \mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \right)} -
+\sum_{ij}{r_{ij}\xi_{ij}} \\
+& \frac{\partial{\mathcal{L}}}{\partial{\mathbf{w}'}} = \mathbf{w}' - \sum{\lambda_{ij}y_{ij}\langle \mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right), \mathbf{x}_{ij} \rangle}'_{w'} = 0 \rightarrow \mathbf{w}' = \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}} \\
+& \forall i, 
+\frac{\partial{\mathcal{L}}}{\partial{b_i}} = \sum_j{\lambda_{ij}y_{ij}} = 0 \\
+& \forall (i, j), \frac{\partial{\mathcal{L}}}{\partial{\xi_{ij}}} = C - \lambda_{ij} - r_{ij} = 0 \rightarrow \lambda_{ij} + r_{ij} = C
+\end{aligned}
+\end{equation}
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\lambda, r) = \frac{1}{2} \langle \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}}, \sum_{ij}{\lambda_{ij}y_{ij}\mathbf{A}^{-1} \mathbf{x}_{ij}} \rangle + C\sum\limits_{ij}\xi_{ij} - 
+\sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1} \sum_{ij}{\lambda_{ij}y_{ij} \mathbf{A}^{-1}  \mathbf{x}_{ij}}, \mathbf{x}_{ij}\rangle} - \\ 
+& - \sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{ij}{\lambda_{ij} y_{ij}b_i} + \sum_{ij}{\lambda_{ij}}  - \sum_{ij}{\lambda_{ij}\xi_{ij}}- \sum_{ij}{r_{ij}\xi_{ij}} = \\
+& = \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \mathbf{A}^{-1} \mathbf{x}_{ij}, \mathbf{A}^{-1} \mathbf{x}_{pq} \rangle} + \sum_{ij}{\xi_{ij}(C - \lambda_{ij} - r_{ij})} - \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \mathbf{A}^{-2} \mathbf{x}_{ij},  \mathbf{x}_{pq} \rangle} - \\
+& - \sum_{ij}{\lambda_{ij} y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{i}{b_i \sum_j{\lambda_{ij} y_{ij}}} + \sum_{ij}{\lambda_{ij}}
+\end{aligned}
+\end{equation}
+\\
+\begin{enumerate}
+	\item $\sum_{ij}{\xi_{ij}(C - \lambda_{ij} - r_{ij})} = 0$ из ограничений;
+	\item $\sum_{i}{b_i \sum_j{\lambda_{ij} y_{ij}}} = 0$ из ограничений;
+	\item $\langle  \mathbf{A}^{-2} \mathbf{x},  \mathbf{x} \rangle = \langle  \mathbf{A}^{-1} \mathbf{x}, \mathbf{A}^{-1} \mathbf{x} \rangle$, т.к. $\mathbf{x}^{\top}\mathbf{A}^{-2} \mathbf{x} =  \mathbf{x}^{\top}\mathbf{A}^{-1}\mathbf{A}^{-1} \mathbf{x} = (\mathbf{A}^{-1} \mathbf{x})^{\top}\mathbf{A}^{-1} \mathbf{x}$
+\end{enumerate}
+
+$\rightarrow$ введём обозначение:
+$\widehat{\mathbf{X}} = (\mathbf{A}^{-1})^{\text{T}}\mathbf{X} = \mathbf{A}^{-1}\mathbf{X}$, т.к. $ \mathbf{A}$ симметрична.
+\begin{equation}
+\begin{aligned}
+& \mathcal{L}(\lambda) = - \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}_{ij}}, \widehat{\mathbf{x}_{pq}} \rangle} - 
+\sum_{ij}{\lambda_{ij}y_{ij}\langle \mathbf{A}^{-1}\mathbf{B}, \mathbf{x}_{ij} \rangle} + \sum_{ij}{\lambda_{ij}} = \\
+& = - \frac{1}{2} \sum_{ij}\sum_{pq} {\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}_{ij}}, \widehat{\mathbf{x}_{pq}}  \rangle} + 
+\sum_{ij}{\lambda_{ij} \left(1  - y_{ij}\langle \mathbf{B}, \widehat{\mathbf{x}_{ij}} \rangle \right)}
+\end{aligned}
+\end{equation}
+Двойственная задача: $\argmax_{\lambda} \mathcal{L}(\lambda)$
+
+Значит, исходная задача по теореме Каруша-Куна-Таккера эквивалентна двойственной:
+\begin{equation}\label{eq19}
+\begin{aligned}
+& \underset{\lambda_{ij}}{\text{minimize:}}
+& & \frac{1}{2}\sum\limits_{(i,j),(p,q)}\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}}_{ij},\widehat{\mathbf{x}}_{pq}\rangle + \sum_{ij}{\lambda_{ij} \left(y_{ij}\langle \mathbf{B}, \widehat{\mathbf{x}_{ij}} \rangle - 1 \right)} \\
+& \text{subject to:}
+& & 0\leq\lambda_{ij} \leq C, \\
+&&& \forall i, \sum_j{\lambda_{ij}y_{ij}} = 0 \\
+&&&i\in\{1,\dots,P\}, \\
+&&&j\in\{0,\dots,D\}.
+\end{aligned}
+\end{equation}
+
+\section{Эксперимент}
+
+
+\section{Заключение}
+
+
+\begin{thebibliography}{1}
+	\bibitem{classification} 
+	Maria Kadukova, Sergei Grudinin.
+	\textbf{Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization}.
+	Journal of Computer-Aided Molecular Design, October 2017, Volume 31, Issue 10, pp 943–958.
+	
+	\bibitem{D3R}
+	Maria Kadukova and Sergei Grudinin.
+	\textbf{Docking of small molecules to farnesoid X receptors using AutoDock Vina with the Convex-PL potential : lessons learned from D3R Grand Challenge 2}.
+	J. Comput.-Aided Mol. Des., 2017. 
+	
+	\bibitem{regression} 
+	Sergei Grudinin, Maria Kadukova, Andreas Eisenbarth, Simon Marillet, Frédéric Cazals.
+	\textbf{Predicting binding poses and affinities for protein-ligand complexes in the 2015 D3R Grand Challenge using a physical model with a statistical parameter estimation}.
+	J Comput Aided Mol Des. 2016 Sep;30(9):791-804. Epub 2016 Oct 7.
+	
+	\bibitem{convex_optimization} 
+	S.P. Boyd and L. Vandenberghe.
+	\textbf{Convex optimization}.
+	Cambridge Univ Press, 2004.
+	
+%	\bibitem{liblinear} 
+%	Rong-En Fan, Kai-Wei Chang, Cho-Jui Hsieh, Xiang-Rui Wang, Chih-Jen Lin.
+%	\textbf{LIBLINEAR: A Library for Large Linear Classification}.
+%	The Journal of Machine Learning Research archive, Volume 9, 6/1/2008, Pages 1871-1874.
+
+	
+\end{thebibliography}
+
+\end{document}
