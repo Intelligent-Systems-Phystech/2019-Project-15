@@ -3,12 +3,17 @@
 \usepackage[russian]{babel}
 \usepackage{amsmath,mathrsfs,mathtext}
 \usepackage{graphicx, epsfig}
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{wrapfig,graphicx,lipsum}
+\usepackage{subfig}
+\graphicspath{ {./} }
 \usetheme{Warsaw}%{Singapore}%{Warsaw}%{Warsaw}%{Darmstadt}
 \usecolortheme{sidebartab}
 \definecolor{beamer@blendedblue}{RGB}{15,120,80}
 %----------------------------------------------------------------------------------------------------------
 \title[\hbox to 56mm{\hfill\insertframenumber\,/\,\inserttotalframenumber}]
-{Формулировка и решение задачи оптимизации, сочетающей классификацию и регрессию, для оценки энергии связывания белка и маленьких молекул}
+{Оценка энергии связывания белка и маленьких молекул}
 \author[А.\,С. Грачёва]{\large \\Анастасия Грачёва}
 \institute{\large
 Московский физико-технический институт\par
@@ -23,77 +28,164 @@
 \titlepage
 \end{frame}
 %-----------------------------------------------------------------------------------------------------
-\begin{frame}{Цель исследования}
-При разработке лекарства возникает задача поиска маленьких молекул - лигандов, наиболее сильно взаимодействующих с исследуемым белком, а значит являющихся основными кандидатами в лекарства. \\
-Так как энергия связывания молекул в нативном положении достигает минимума, то, обучив классификатор, мы получаем возможность из сгенерированных положений выбирать одно наиболее близкое к нативному. Есть предположение, что качество предсказания может быть повышено, если использовать экспериментальные данные о свободной энергии связывания молекул и решать одновременно задачи регрессии и классификации. Проверке этого предположения посвящено исследование.
-%\begin{block}{Актуальность исследования}
-%\end{block}
+\begin{frame}{Белково-лигандные взаимодействия}
+\begin{block}{Решаемая задача}
+	Поиск маленьких молекул - лигандов, наиболее сильно взаимодействующих с исследуемым белком.
+\end{block}
+\begin{block}{Цель}
+	Повышение качества предсказания нативной позы лиганда.
+\end{block}
+\begin{block}{Существующее решение}
+	Обучив классификатор, получаем скоринговый вектор. Его скалярное произведение со структурным вектором нативной позы минимально, но не обязательно равно реальному значению энергии связывания.
+%	Он задаёт гиперплоскость, разделяющую структурные вектора, соответствующие нативным и ненативным позам, а значит имеет минимальное скалярное произведение со структурным вектором, соответствующим нативному положению.
+\end{block}
+\begin{block}{Предложение}
+	Использовать данные о свободной энергии связывания молекул и решать одновременно задачи регрессии и классификации.
+\end{block}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
+\begin{frame}{Модель взаимодействий}
+\begin{columns}
+	\column{0.5\linewidth}
+	\begin{block}{}
+		Есть $P$ нативных комплексов белков-лигандов $\{C_{i0}\}_{i=1}^P$. Применив к лигандам изометрические преобразования, сгенерируем для каждого комплекса $D$ ненативных поз $\{C_{ij}\}_{j=1}^D$. 
+	\end{block}
+	\begin{block}{}
+		Требуется найти функцию $E$, т.ч. $E(C_{i0}) < E(C_{ij})$
+	\end{block}
+	
+	\column{0.5\linewidth}
+	\begin{block}{}
+		\begin{figure}[h]
+			\includegraphics[width=5cm, height=5cm]{pic0}
+		\end{figure}
+	\end{block}
+\end{columns}
+
+\end{frame}
+
+
+\begin{frame}{Модель взаимодействий}
+\begin{block}{Предположения}
+	\begin{enumerate}
+		\item
+		будем рассматривать комплекс "белок-лиганд"\ как набор атомов, каждый из которых имеет некоторый тип
+		\item
+		$E$ определяется только взаимодействиями между парами атомов  комплекса
+		\item
+		$E$ зависит только от распределения расстояний между взаимодействующими атомами
+	\end{enumerate}
+\end{block}
+\begin{block}{}
+	\begin{equation}
+	E(n(r)) = \sum_{k=1}^{M_1}\sum_{l=1}^{M_2}\int_{0}^{r_{max}}n^{kl}(r)f^{kl}(r)dr,
+	\end{equation}
+	$f^{kl}(r)$ -- неизвестные функции взаимодествия между атомами
+	
+	$n^{kl}(r)$ -- известные плотности распределений пар атомов по расстоянию между ними:
+\end{block}
+\end{frame}
+
+\begin{frame}{Модель взаимодействий}
+\begin{block}{}
+	Разложим $f^{kl}(r)$ и $n^{kl}(r)$ по полиномиальному базису до порядка $Q$: 
+	\begin{equation}\label{eq4}
+	f^{kl}(r) \approx \sum_{q}^Q w_q^{kl}\psi_q(r), \text{  } n^{kl}(r) \approx \sum_{q}^Q x_q^{kl}\psi_q(r),
+	\end{equation}	
+	\begin{equation}
+	\begin{split}
+	E(n(r)) \approx \sum_{k=1}^{M_1} & \sum_{l=1}^{M_2} \sum_{q=0}^{Q}w_q^{kl}x_q^{kl} = \langle\mathbf{w},\mathbf{x}\rangle,\\
+	\mathbf{w}, \mathbf{x} & \in \mathbb{R}^{Q\times M_1\times M_2}.
+	\end{split}
+	\end{equation}
+\end{block}
+\end{frame}
+
 \begin{frame}{Постановка задачи}
-\begin{equation}\label{eq12}
+\begin{figure}[br]
+	\includegraphics[width=7cm, height=8cm]{pic1}
+\end{figure}
+\end{frame}
+
+
+\begin{frame}{Постановка задачи}
+	\begin{equation}
+		\begin{aligned}
+		& \underset{\mathbf{w}, \xi_{ij}}{\text{min:}}
+		& & \frac{1}{2} \|\mathbf{w}\|^2 + C\sum\limits_{ij}\xi_{ij} + C_{r}\sum\limits_{i} \left(\langle\mathbf{w},\mathbf{x}_{i0}\rangle - s_i\right)^2 \\
+		& \text{s. t.:}
+		& & y_{ij}[\langle\mathbf{w},\mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \geq 0, \\
+		&&& \xi_{ij} \geq 0, \\
+		&&&i\in\{1,\dots,P\} \\
+		&&&j\in\{0,\dots,D\}
+		\end{aligned}
+	\end{equation}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+
+\begin{frame}{Решение}
+\begin{block}{}
+Приведение к одному квадратичному слагаемому
+\begin{equation}\label{eq17}
 \begin{aligned}
-& \underset{\mathbf{w}, \xi_{ij}}{\text{minimize:}}
-& & \frac{1}{2} \|\mathbf{w}\|^2 + C\sum\limits_{ij}\xi_{ij} + C_{r}\sum\limits_{i} \left(\langle\mathbf{w},\mathbf{x}_{i0}\rangle - s_i\right)^2 \\
-& \text{subject to:}
-& & y_{ij}[\langle\mathbf{w},\mathbf{x}_{ij}\rangle - b_i]-1+\xi_{ij} \geq 0, \\
-&&& \xi_{ij} \geq 0, \\
-&&&i\in\{1,\dots,P\} \\
-&&&j\in\{0,\dots,D\}
+& \underset{\mathbf{w}', b_i, \xi_{ij}}{\text{min:}}
+& & \frac{1}{2} \|\mathbf{w}'\|^2 + C\sum\limits_{ij}\xi_{ij} \\
+& \text{s. t.:}
+& & y_{ij}[\left(\mathbf{A}^{-1}\left(\mathbf{w}'+\mathbf{B}\right)\right)^{\text{T}}\mathbf{x}_{ij} - b_i]-1+\xi_{ij} \geq 0, \\
+&&& \xi_{ij} \geq 0
+\end{aligned}
+\end{equation}
+%\begin{equation}\label{eq16}
+%\begin{aligned}
+%& \mathbf{w}'= \mathbf{A}{\mathbf{w}} - \mathbf{B}, \ \text{где} \\
+%& \mathbf{A}=\left[\mathbf{I} + 2C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{\frac{1}{2}},\\
+%& \mathbf{B}=C_r\left[\frac{1}{2}\mathbf{I} + C_{r}{\mathbf{X}}^{\text{T}}{\mathbf{X}}\right]^{-\frac{1}{2}}
+%{\mathbf{X}}^{\text{T}}\mathbf{s}.
+%\end{aligned}
+%\end{equation}
+\end{block}
+Поиск двойственной задачи:
+\begin{equation}\label{eq19}
+\begin{aligned}
+& \underset{\lambda_{ij}}{\text{min:}}
+& & \frac{1}{2}\sum\limits_{(i,j),(p,q)}\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle \widehat{\mathbf{x}}_{ij},\widehat{\mathbf{x}}_{pq}\rangle + \sum_{ij}{\lambda_{ij} \left(y_{ij}\langle \mathbf{B}, \widehat{\mathbf{x}_{ij}} \rangle - 1 \right)} \\
+& \text{s. t.:}
+& & 0\leq\lambda_{ij} \leq C, \\
+&&& \forall i, \sum_j{\lambda_{ij}y_{ij}} = 0
 \end{aligned}
 \end{equation}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
-\begin{frame}{Решение}
-\begin{block}{Базовый алгоритм}
-Сведение к квадратичной задаче
-\begin{equation}\label{eq13}
-\begin{split}
-& \frac{1}{2}x^{\top}Px + q^{\top}x \rightarrow min \\
-& s.t. Gx + h \leq 0
-\end{split}
-\end{equation}
-\begin{equation}\label{eq13}
-\begin{split}
-& \mathbf{w}^{\text{T}}\leftarrow(\mathbf{w}^{\text{T}}, b_1, \dots, b_P, \varepsilon_{00}, \dots \varepsilon{ij}, \dots),\\
-& \mathbf{x}_{10}^{\text{T}}\leftarrow(\mathbf{x}_{1j}^{\text{T}}, -1, 0, \dots, 0, 1, \dots 0),\\
-& \mathbf{x}_{11}^{\text{T}}\leftarrow(\mathbf{x}_{1j}^{\text{T}}, -1, 0, \dots, 0, 0, 1, \dots, 0),\\
-& \mathbf{x}_{2j}^{\text{T}}\leftarrow(\mathbf{x}_{2j}^{\text{T}}, 0, -1, 0, \dots, 0, \dots),\\
-& \dots \\
-&i \in \{0, \dots, P\}, j\in\{0,\dots,D\}.
-\end{split}
-\end{equation}
-\end{block}
-\end{frame}
-
-\begin{frame}{Решение}
-\begin{block}{Продвинутый алгоритм}
-	Сведение к стандартному SVM-виду, чтобы сохранить блочную структуру данных для повышения эффективности.
-	\begin{equation}\label{eq19}
-	\begin{aligned}
-	& \underset{\lambda_{ij}}{\text{minimize:}}
-	& & -\sum\limits_{ij}\lambda_{ij} + \frac{1}{2}\sum\limits_{(i,j),(p,q)}\lambda_{ij}\lambda_{pq}y_{ij}y_{pq}\langle\hat{\mathbf{x}}_{ij},\hat{\mathbf{x}}_{pq}\rangle \\
-	& \text{subject to:}
-	& & 0\geq\lambda_{ij}\geq C, \\
-	&&&i\in\{1,\dots,P\}, \\
-	&&&j\in\{0,\dots,D\}.
-	\end{aligned}
-	\end{equation}
-\end{block}
-\end{frame}
-%----------------------------------------------------------------------------------------------------------
 \begin{frame}{Литература}
 
-\begin{block}{Ближайшие работы}
-	1) Maria Kadukova, Sergei Grudinin. Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization. Journal of ComputerAided Molecular Design, Springer Verlag, 2017, 31 (10), pp.943-958. \\
-	2) Sergei Grudinin, Maria Kadukova, Andreas Eisenbarth, Simon Marillet, Frederic Cazals. Predicting
-	binding poses and affinities for protein-ligand complexes in the 2015 D3R Grand Challenge using a
-	physical model with a statistical parameter estimation. Journal of Computer-Aided Molecular Design, Springer Verlag, 2016, 30 (9), pp.791-804.
-\end{block}
+\begin{enumerate}
+\item Maria Kadukova, Sergei Grudinin. Convex-PL: a novel knowledge-based potential for protein-ligand interactions deduced from structural databases using convex optimization. \\
+\item Sergei Grudinin, Maria Kadukova, Andreas Eisenbarth, Simon Marillet, Frederic Cazals. Predicting binding poses and affinities for protein-ligand complexes in the 2015 D3R Grand Challenge using a physical model with a statistical parameter estimation. \\
+\item Support Vector Machines (CS229 Lecture notes)
+\end{enumerate}
+\end{frame}
+%----------------------------------------------------------------------------------------------------------
+\begin{frame}{Результаты}
+800 комплексов
+\begin{figure}%
+	\centering
+	\subfloat[MSE]{{\includegraphics[width=5cm]{MSE} }}%
+	\qquad
+	\subfloat[Классификация]{{\includegraphics[width=5cm]{CLF} }}%
+	\caption{Регрессия и классификация в зависимости от $C_r$}%
+\end{figure}
+%\begin{figure}[br]
+%	\includegraphics[width=7cm, height=8cm]{MSE}
+%\end{figure}
+%\begin{figure}[br]
+%	\includegraphics[width=7cm, height=8cm]{CLF}
+%\end{figure}
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
 \begin{frame}{Заключение}
-Несмотря на то, что базовый алгоритм проще и стабильнее, он не эффективен на полном объёме данных, так как имеет квадратичную сложность. Поэтому следующим шагом будет привести задачу к стандартному SVM-виду, что позволит сохранить блочную структуру данных, т.е. не сравнивать между собой признаковые вектора, относящиеся к разным комплексам(блокам), и тем самым существенно повысить эффективность. 
+ Предложенный способ имеет высокий потенциал, хотя в данный момент и подвержен переобучению. Тем не менее, даже на неизвестных данных качество классификации в данный момент превышает полученные в базовом решении результаты (от 90 до 94\% в зависимости от способа генерации данных).
+ 
+ В будущем можно увеличить количество комплексов в обучающей выборке и оценить работу алгоритма на структурах, сгенерированных более сложными докинг-методами.
 \end{frame}
 %----------------------------------------------------------------------------------------------------------
 \end{document} 
